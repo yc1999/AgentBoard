@@ -87,7 +87,7 @@ def check_log_paths_are_ready(log_dir, baseline_dir):
     return True
 
 def main():
-    load_dotenv()  # take environment variables from .env., load openai api key, tool key, wandb key, project path...
+    load_dotenv(override=True)  # take environment variables from .env., load openai api key, tool key, wandb key, project path...
 
     args = parse_args()
     llm_config, agent_config, env_config, run_config = load_config(args.cfg_path, args) 

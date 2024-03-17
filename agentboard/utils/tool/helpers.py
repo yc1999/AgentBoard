@@ -3,15 +3,32 @@ import math
 import os
 from utils.logging.agent_logger import AgentLogger
 
-def extract_action_name_and_action_input(text):
-    pattern = r"\s*(.*?)\s*with\s*Action Input:\s*(.*?)$"
-    match = re.search(pattern, text)
+def extract_action_name_and_action_input(string):
+    # pattern = r"Action:\s*(.*?)\s*with\s*Action Input:\s*(.*?)$"
+    position = string.find("Action:")
+    if position == -1:
+        return None
+    string = string[position:].replace("\n", " ")
+    pattern = r"Action:\s*(.*?)Action Input:\s*(.*?)$"
+    match = re.match(pattern, string)
     if match:
-        action = match.group(1)
-        action_input = match.group(2)
-        return action, action_input
+        action_type = match.group(1)
+        params = match.group(2)
+        try:
+            params = eval(params)
+        except:
+            raise Exception("Parameters in action input are not valid, please change your action input.")
+        return action_type, params
     else:
         return None, None
+    # pattern = r"\s*(.*?)\s*with\s*Action Input:\s*(.*?)$"
+    # match = re.search(pattern, text)
+    # if match:
+        # action = match.group(1)
+        # action_input = match.group(2)
+        # return action, action_input
+    # else:
+        # return None, None
 
 def parse_action(string):
     pattern = r"Action:\s*(.*?)\s*with\s*Action Input:\s*(.*?)$"
@@ -94,3 +111,26 @@ def save_log(logger_name, task_name, output_dir):
     log_file_path = os.path.join(log_dir, log_file_name)
     logger = AgentLogger(logger_name, filepath=log_file_path)
     return logger 
+
+def omit_action(prompt, action_name):
+    if type(prompt) == str:
+        lines = prompt.split("\n")
+        new_lines = []
+        in_delete_section = False
+
+        for line in lines:
+            if line.startswith(f"Name: {action_name}("):
+                in_delete_section = True
+            elif in_delete_section and line.strip() == "":
+                in_delete_section = False
+                continue
+            if not in_delete_section:
+                new_lines.append(line)
+
+        return "\n".join(new_lines)
+    else:
+        for idx, function in enumerate(prompt):
+            if function["name"] == action_name:
+                break
+        prompt.pop(idx)
+        return prompt

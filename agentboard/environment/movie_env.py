@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 @registry.register_environment("movie")
 class MovieEnv:
-    def __init__(self, dataset=None, use_dataset=True):
+    def __init__(self, dataset=None, use_dataset=True, remove_action=None):
         super().__init__()
         self.action_path = []
         self.movie_toolkits = movie_toolkits()
@@ -25,6 +25,7 @@ class MovieEnv:
             self.dataset = None
         else:
             self.dataset = dataset
+        self.remove_action = remove_action
         self.reset()
 
     def get_info(self):
@@ -42,6 +43,8 @@ class MovieEnv:
     def get_action_space(self, with_input=False):
         if not with_input:
             action_space = [ item["name"] for item in json.load( open("{}/agentboard/prompts/Raw/movie_raw.json".format(os.environ["PROJECT_PATH"]), "r") )["tool_set_message"] ]
+            if self.remove_action is not None:
+                action_space = [ action for action in action_space if action not in self.remove_action ]
             return action_space
         else:
             raise NotImplemented("Action space with input is not implemented yet.")
@@ -137,8 +140,10 @@ class MovieEnv:
                 observation = self.movie_toolkits.get_movie_alternative_titles(movie_id=params["movie_id"], action_path=action_path)
             elif action_type == "get_movie_translation":
                 observation = self.movie_toolkits.get_movie_translation(movie_id=params["movie_id"], action_path=action_path)
-            elif action_type == "finish":
+            elif action_type == "finish" or action_type == "Finish":
                 observation = self.movie_toolkits.finish(answer=params["answer"], action_path=action_path)
+            elif action_type == "UnsolvableRequest":
+                observation = self.movie_toolkits.unsolvableRequest(message=params["message"], action_path=action_path)
             elif action_type == "check_valid_actions":
                 observation = "You can use following valid actions: {}".format(self.get_action_space(with_input=False))
             else:
@@ -148,7 +153,7 @@ class MovieEnv:
             done = False
             return  observation, self.reward, self.done, None
 
-        done = "Finish" in action or "finish" in action
+        done = "Finish" in action or "finish" in action or "UnsolvableRequest" in action or "unsolvableRequest" in action
         self.done = done
         
         if self.dataset is not None and "Invalid" not in str(observation):
@@ -159,6 +164,6 @@ class MovieEnv:
     @classmethod
     def from_config(cls, cfg):
 
-        env = cls(dataset = cfg.get("dataset"))
+        env = cls(dataset = cfg.get("dataset"), remove_action = cfg.get("remove_action"))
 
         return env

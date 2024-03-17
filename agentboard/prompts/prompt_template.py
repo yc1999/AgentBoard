@@ -19,13 +19,18 @@ prompt_templates = {
             """
                 <s>[INST]{system_prompt}{prompt}[/INST]
             """,
+#     "llama":
+#             """
+#                 <<SYS>>
+#                 {system_prompt}
+#                 <</SYS>>
+#                 [INST]{prompt}[/INST]
+#             """,
     "llama":
-            """
-                <<SYS>>
-                {system_prompt}
-                <</SYS>>
-                [INST]{prompt}[/INST]
-            """,
+"""
+{system_prompt}
+{prompt}
+""",
     "lemur":
             """
                 <|im_start|>system

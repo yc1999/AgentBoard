@@ -179,7 +179,7 @@ class VanillaAgent(
                                         system_message=system_message)
         
         self.log_example_prompt(input_prompt)
-
+        # print(input_prompt)
         success, action = self.llm_model.generate(system_message, input_prompt)
 
         if success and self.use_parser:

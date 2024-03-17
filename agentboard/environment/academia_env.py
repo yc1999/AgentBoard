@@ -17,11 +17,12 @@ logger = logging.getLogger(__name__)
 
 @registry.register_environment("academia")
 class AcademiaEnv:
-    def __init__(self, dataset):
+    def __init__(self, dataset, remove_action=None):
         super().__init__()
         self.action_path = []
         self.academia_toolkits = academia_toolkits(path=os.environ["PROJECT_PATH"], dataset=dataset)
         self.dataset = dataset
+        self.remove_action = remove_action
         self.reset()
 
     def get_info(self):
@@ -39,6 +40,8 @@ class AcademiaEnv:
     def get_action_space(self, with_input=False):
         if not with_input:
             action_space = [ item["name"] for item in json.load( open("{}/agentboard/prompts/Raw/academia_raw.json".format(os.environ["PROJECT_PATH"]), "r") )["tool_set_message"] ]       
+            if self.remove_action is not None:
+                action_space = [ item for item in action_space if item != self.remove_action]
             return action_space
         else:
             raise NotImplemented("Action space with input is not implemented yet.")
@@ -115,8 +118,10 @@ class AcademiaEnv:
                 observation = self.academia_toolkits.authorEdgeCheck(node1=params["node1"], node2=params["node2"], action_path=action_path)
             elif action_type == "paperEdgeCheck":
                 observation = self.academia_toolkits.paperEdgeCheck(node1=params["node1"], node2=params["node2"], action_path=action_path)
-            elif action_type == "finish":
+            elif action_type == "finish" or action_type == "Finish":
                 observation = self.academia_toolkits.finish(answer=params["answer"], action_path=action_path)
+            elif action_type == "UnsolvableRequest":
+                observation = self.academia_toolkits.unsolvableRequest(message=params["message"], action_path=action_path)
             elif action_type == "check_valid_actions":
                 observation = "You can use following valid actions: {}".format(self.get_action_space(with_input=False))
             else:
@@ -126,7 +131,7 @@ class AcademiaEnv:
             done = False
             return  observation, self.reward, self.done, None
 
-        done = "Finish" in action or "finish" in action
+        done = "Finish" in action or "finish" in action or "UnsolvableRequest" in action or "unsolvableRequest" in action
         self.done = done
 
         if self.dataset is not None and "Invalid" not in str(observation):
@@ -136,6 +141,6 @@ class AcademiaEnv:
 
     @classmethod
     def from_config(cls, cfg):
-        env = cls(dataset = cfg.get("dataset"))
+        env = cls(dataset = cfg.get("dataset"), remove_action = cfg.get("remove_action"))
 
         return env

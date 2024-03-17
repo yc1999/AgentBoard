@@ -8,7 +8,7 @@ import time
 
 @registry.register_environment("todo")
 class TodoEnv:
-    def __init__(self, dataset):
+    def __init__(self, dataset, remove_action=None):
         super().__init__()
         self.action_path = []
 
@@ -25,6 +25,9 @@ class TodoEnv:
                     raise e
         
         self.dataset = dataset
+
+        self.remove_action = remove_action
+
         self.reset()
 
     def get_info(self):
@@ -42,6 +45,8 @@ class TodoEnv:
     def get_action_space(self, with_input=False):
         if not with_input:
             action_space = [ item["name"] for item in json.load( open("{}/agentboard/prompts/Raw/todo_raw.json".format(os.environ["PROJECT_PATH"]), "r") )["tool_set_message"] ]
+            if self.remove_action is not None:
+                action_space = [ action for action in action_space if action not in self.remove_action ]
             return action_space
         else:
             raise NotImplemented("Action space with input is not implemented yet.")
@@ -145,6 +150,6 @@ class TodoEnv:
 
     @classmethod
     def from_config(cls, cfg):
-        env = cls(dataset = cfg.get("dataset"))
+        env = cls(dataset = cfg.get("dataset"), remove_action = cfg.get("remove_action"))
 
         return env

@@ -42,9 +42,21 @@ class HgModels:
         self.pad_token_id = self.tokenizer.eos_token_id
         self.eos_token_id = self.tokenizer.eos_token_id
         self.stop = stop
-        self.llm = AutoModelForCausalLM.from_pretrained(model,
-                                                        device_map='auto',
-                                                        torch_dtype=torch_dtype)
+        if "dellama" in model.lower():
+            import sys
+            sys.path.append("/home/yc21/project/AgentBoard_yc/AgentBoard/ToolBench")
+            from peft import PeftModel
+            from toolbench.train.llama_condense_monkey_patch import replace_llama_with_condense
+            replace_llama_with_condense(ratio=2)
+            base_model = transformers.LlamaForCausalLM.from_pretrained("/home/scf22/big_model/Llama-2-7b-hf/", torch_dtype=torch.bfloat16, device_map="auto")
+            base_model.config.max_position_embeddings = 8192
+            self.llm = PeftModel.from_pretrained(base_model, "/home/yc21/project/AgentBoard_yc/AgentBoard/toolbench-unsolvable-lora", torch_dtype=torch.bfloat16)
+            self.tokenizer.model_max_length = 8192
+            self.tokenizer.padding_side = "left"
+            self.tokenizer.pad_token = self.tokenizer.unk_token
+                        
+        else:
+            self.llm = AutoModelForCausalLM.from_pretrained(model, device_map='auto', torch_dtype=torch_dtype)
         #self.StopCriteria = EosListStoppingCriteria(self.tokenizer(stop))
 
         
@@ -75,14 +87,23 @@ class HgModels:
         return full_prompt
 
     def generate(self, system_message, prompt):
-        full_prompt = self.make_prompt(system_message, prompt)
+        # full_prompt = self.make_prompt(system_message, prompt)
+        full_prompt = prompt
         assert full_prompt is not None
 
         with torch.no_grad():
             input = self.tokenizer([full_prompt], return_tensors="pt")
             prompt_length = len(input.input_ids[0])
             input = {k: v.to("cuda") for k, v in input.items()}
-            outputs = self.llm.generate(**input,
+            # outputs = self.llm.generate(**input,
+            #                             max_new_tokens=self.max_tokens,
+            #                             temperature=self.temperature,
+            #                             top_p=self.top_p,
+            #                             pad_token_id=self.pad_token_id,
+            #                             eos_token_id=self.eos_token_id,
+            #                             output_scores=True,
+            #                             do_sample=False)
+            outputs = self.llm.generate(input['input_ids'],
                                         max_new_tokens=self.max_tokens,
                                         temperature=self.temperature,
                                         top_p=self.top_p,
@@ -98,10 +119,20 @@ class HgModels:
              output_texts = output_texts.replace('\_', '_')
         return True, output_texts
     
+    def make_tool_prompt(self, messages):
+        prompt = ""
+        for message in messages:
+            role = message["from"]
+            content = message["value"]
+            prompt += f"{role}: {content}\n"
+        prompt += "Assistant:\n"
+        return prompt
+    
     def num_tokens_from_messages(self, messages):
-        prompt = messages[1]["content"]
-        system_message = messages[0]["content"]
-        full_prompt = self.make_prompt(system_message, prompt)
+        # prompt = messages[1]["content"]
+        # system_message = messages[0]["content"]
+        # full_prompt = self.make_prompt(system_message, prompt)
+        full_prompt = self.make_tool_prompt(messages)
         tokens = self.tokenizer(full_prompt)
         num_tokens = len(tokens["input_ids"])
         #print(num_tokens)

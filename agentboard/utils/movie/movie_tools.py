@@ -347,6 +347,10 @@ class movie_toolkits:
             answer = sorted(answer)
         return True, answer
 
+    @log_path
+    def unsolvableRequest(self, message):
+        return True, message
+
 
 if __name__ == "__main__":
     tool = movie_toolkits()

@@ -18,3 +18,5 @@ agentboard/environment/WebShop/subreward_log*
 **/.auth
 */__pycache__/
 /.ipynb_checkpoints/*
+data_generation/*
+trash/*

@@ -27,12 +27,13 @@ def extract_sheet_name(s):
 
 @registry.register_environment("sheet")
 class SheetEnv:
-    def __init__(self, dataset):
+    def __init__(self, dataset, remove_action=None):
         super().__init__()
         self.action_path = []
         self.sheet_toolkits = sheet_toolkits()
         self.sheet_toolkits.init_sheets()
         self.dataset = dataset
+        self.remove_action = remove_action
         self.reset()
 
     def get_info(self):
@@ -51,6 +52,8 @@ class SheetEnv:
         action_space = [item["name"] for item in json.load(
             open("{}/agentboard/prompts/Raw/sheet_raw.json".format(os.environ["PROJECT_PATH"]), "r"))[
             "tool_set_message"]]
+        if self.remove_action:
+            action_space = [action for action in action_space if action not in self.remove_action]
         return action_space
 
     def is_done(self):

@@ -273,6 +273,10 @@ class academia_toolkits:
         if type(answer) == list:
             answer = sorted(answer)
         return True, answer
+    
+    @log_path
+    def unsolvableRequest(self, message):
+        return True, message
 
 if __name__ == "__main__":
     load_dotenv()

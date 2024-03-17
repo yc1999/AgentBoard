@@ -5,7 +5,7 @@ from typing import List, Dict, Any, Union
 from copy import deepcopy
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 
 URLS = {
     "get_projects": "https://api.todoist.com/rest/v2/projects",

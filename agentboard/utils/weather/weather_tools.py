@@ -544,6 +544,9 @@ class weather_toolkits:
         return True, answer
 
     # @log_path
+    @log_path
+    def unsolvableRequest(self, message):
+        return True, message
 
 if __name__ == "__main__":
     init_config = {

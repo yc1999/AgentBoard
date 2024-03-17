@@ -20,9 +20,12 @@ from utils.tool.helpers import (
     extract_sheet_number,
     check_credentials,
     contains_network_error,
+    omit_action,
+    save_log
 )
 
-logger = AgentLogger(__name__)
+# logger = AgentLogger(__name__)
+logger = save_log("tool", "tool", "/home/yc21/project/AgentBoard_yc/AgentBoard")
 
 @registry.register_task("tool")
 class EvalTool(BaseTask):
@@ -60,6 +63,10 @@ class EvalTool(BaseTask):
         # check credentials for movie, todo and sheet
         check_credentials()
 
+        #! Action Hallucinations
+        with open("/home/yc21/project/AgentBoard_yc/AgentBoard/data_generation/remove_action.jsonl", "r") as f:
+            self.remove_actions = [json.loads(line) for line in f.readlines()]
+
     def evaluate(self):
         # get dataset
         self.dataset = self.load_dataset(self.env_config["name"],
@@ -87,6 +94,18 @@ class EvalTool(BaseTask):
             num_steps.append(steps)
             
             logger.finish("Example {} | Success: {} , Progress Rate: {} , Steps: {}\n".format(id, success, progress_rate, steps))
+            # write to file
+            self.dataset.write_result(id,
+                                      self.dataset.goals[id],
+                                      self.dataset.ground_truths[id],
+                                      self.agent,
+                                      success,
+                                      steps,
+                                      progress_rate,
+                                      output,
+                                      grounding_acc,
+                                      score_change_record,
+                                    )
 
         sr = sum(success_rates) * 1.0 / len(success_rates)
         pr = sum(progress_rates) * 1.0 / len(progress_rates)
@@ -128,7 +147,9 @@ class EvalTool(BaseTask):
             dataset_i["current_location"] = dataset.init_configs[id]["current_location"]
         env_config["dataset"] = dataset_i
         
+        env_config["remove_action"] = self.remove_actions[id][0]
         self.env = load_environment( dataset_i["tool"] , env_config)
+        logger.info("Example {} | Remove Action: {}".format(id, env_config["remove_action"]) )
 
         # get task infomation 
         goal = self.dataset.goals[id]
@@ -146,13 +167,24 @@ class EvalTool(BaseTask):
         self.agent.instruction = self.agent.init_prompt_dict["instruction"]
         self.agent.examples = self.agent.init_prompt_dict["examples"]
 
-        if tool == "weather":
-            init_obs ="If you want to get the latitude and longitude information of a city, you must call \"get_latitude_longitude\", do not generate it by yourself which maybe wrong. Once you have finished the goal, please remember to take 'finish' action to end this goal." 
-            self.agent.reset(goal, init_obs)
-        else:
-            init_obs = "Once you have finished the goal, please remember to take 'finish' action to end this goal."
-            self.agent.reset(goal, init_obs)
+        # print(self.agent.instruction)
 
+        #! We should set different prompts for different dataset examples
+        remove_action = self.remove_actions[id][0]
+        example_id = self.remove_actions[id][1]
+        # self.agent.init_prompt_dict["instruction"] = omit_action(self.agent.init_prompt_dict["instruction"], remove_action)
+        self.agent.instruction = self.agent.init_prompt_dict["instruction"]
+        self.agent.examples = [ self.agent.init_prompt_dict["examples"][0] ]
+        # print(self.agent.instruction)
+        # exit()
+
+        # if tool == "weather":
+            # init_obs ="If you want to get the latitude and longitude information of a city, you must call \"get_latitude_longitude\", do not generate it by yourself which maybe wrong. Once you have finished the goal, please remember to take 'finish' action to end this goal." 
+            # self.agent.reset(goal, init_obs)
+        # else:
+            # init_obs = "Once you have finished the goal, please remember to take 'finish' action to end this goal."
+            # self.agent.reset(goal, init_obs)
+        self.agent.reset(goal)
         
         if tool == "weather":
             self.env.weather_toolkits.current_date = self.dataset.init_configs[id]["current_date"]
@@ -178,7 +210,7 @@ class EvalTool(BaseTask):
         score_change_record = []
         trajectory = []
         trajectory.append({"Goal":goal, "id":0})
-        trajectory.append({"Observation":init_obs, "id":0})
+        # trajectory.append({"Observation":init_obs, "id":0})
 
         for step_id in range(max_steps):
             
@@ -197,16 +229,16 @@ class EvalTool(BaseTask):
                 logger.info("Step {:02} - Action Input: {}".format(step_id, action_input))
 
                 trajectory.append({"Action": message, "id":step_id})
-
+                action_input = str(action_input)
                 if action_input == None:
-                    observation, done =  "Format error, please response in the format of  \"Action: [your action] with Action Input: [your action input]" , False
+                    observation, done =  "Format error, please response in the format of  \"Thought:\nAction:\n Action Input:" , False
                     reward = self.env.reward
-                    self.agent.update(action="", state=observation)
+                    self.agent.update(action=message, state=observation)
                 else:
                     action_with_action_input = "Action: " + action + " with Action Input: " + action_input
                     observation, _, done, _ = self.env.step(action_with_action_input, action_path = action_path)
                     
-                    self.agent.update(action=action+" with Action Input: "+action_input, state=observation)
+                    self.agent.update(action=message, state=observation)
                     
                     reward = self.env.reward
 

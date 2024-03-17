@@ -17,12 +17,14 @@ logger = logging.getLogger(__name__)
 
 @registry.register_environment("weather")
 class WeatherEnv:
-    def __init__(self, dataset):
+    def __init__(self, dataset, remove_action=None):
         super().__init__()
         self.action_path = []
         self.weather_toolkits = weather_toolkits()
 
         self.dataset = dataset
+
+        self.remove_action = remove_action
         self.reset()
 
 
@@ -41,6 +43,8 @@ class WeatherEnv:
     def get_action_space(self, with_input=False):
         if not with_input:
             action_space = [ item["name"] for item in json.load( open("{}/agentboard/prompts/Raw/weather_raw.json".format(os.environ["PROJECT_PATH"]), "r") )["tool_set_message"] ]
+            if self.remove_action is not None:
+                action_space = [ action for action in action_space if action not in self.remove_action]
             return action_space
         else:
             raise NotImplemented("Action space with input is not implemented yet.")
@@ -265,8 +269,10 @@ class WeatherEnv:
                     zipcode=params["zipcode"],
                     action_path=action_path
                 )
-            elif action_type == "finish":
+            elif action_type == "finish" or action_type == "Finish":
                 observation = self.weather_toolkits.finish(answer=params["answer"], action_path=action_path)
+            elif action_type == "UnsolvableRequest":
+                observation = self.weather_toolkits.unsolvableRequest(message=params["message"], action_path=action_path)
             elif action_type == "check_valid_actions":
                 observation = "You can use following valid actions: {}".format(self.get_action_space(with_input=False))
             else:
@@ -276,7 +282,7 @@ class WeatherEnv:
             done = False
             return  observation, self.reward, self.done, None
 
-        done = "Finish" in action or "finish" in action
+        done = "Finish" in action or "finish" in action or "UnsolvableRequest" in action or "unsolvableRequest" in action
         self.done = done 
 
         if self.dataset is not None and "Invalid" not in str(observation):
@@ -286,6 +292,6 @@ class WeatherEnv:
 
     @classmethod
     def from_config(cls, cfg):
-        env = cls(dataset = cfg.get("dataset"))
+        env = cls(dataset = cfg.get("dataset"), remove_action = cfg.get("remove_action"))
 
         return env

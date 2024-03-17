@@ -35,3 +35,24 @@ class ToolDataset:
         
     def __len__(self):
         return len(self.goals)
+
+    def write_result(self, id, question, ground_truth, agent, success, steps, progress_rate, output, grounding_acc, score_change_record):
+        action_path = agent.memory
+        item = {
+            "id": id,
+            "question": question,
+            "steps": steps,
+            "success": success,
+            "progress_rate": progress_rate,
+            "output": output,
+            "ground_truth_output": ground_truth,
+            "action_path": action_path,
+            "grounding_acc": grounding_acc,
+            "score_change_record": score_change_record,
+        }
+
+        self.results = []
+        self.results.append(item)
+
+        with open("/home/yc21/project/AgentBoard_yc/AgentBoard/trajectory/results.json", "w") as f:
+            json.dump(self.results, f, indent=4, ensure_ascii=False)
