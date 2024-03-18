@@ -54,5 +54,5 @@ class ToolDataset:
         self.results = []
         self.results.append(item)
 
-        with open("/home/yc21/project/AgentBoard_yc/AgentBoard/trajectory/results.json", "w") as f:
+        with open( os.environ["PROJECT_PATH"] + "/trajectory/results.json", "w") as f:
             json.dump(self.results, f, indent=4, ensure_ascii=False)

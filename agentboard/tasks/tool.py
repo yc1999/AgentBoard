@@ -25,7 +25,7 @@ from utils.tool.helpers import (
 )
 
 # logger = AgentLogger(__name__)
-logger = save_log("tool", "tool", "/home/yc21/project/AgentBoard_yc/AgentBoard")
+logger = save_log("tool", "tool", os.environ["PROJECT_PATH"])
 
 @registry.register_task("tool")
 class EvalTool(BaseTask):
@@ -64,7 +64,7 @@ class EvalTool(BaseTask):
         check_credentials()
 
         #! Action Hallucinations
-        with open("/home/yc21/project/AgentBoard_yc/AgentBoard/data_generation/remove_action.jsonl", "r") as f:
+        with open( os.environ["PROJECT_PATH"] + "/data_generation/remove_action.jsonl", "r") as f:
             self.remove_actions = [json.loads(line) for line in f.readlines()]
 
     def evaluate(self):

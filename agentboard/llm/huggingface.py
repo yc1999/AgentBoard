@@ -30,7 +30,7 @@ class HgModels:
         
         access_token = os.environ["HF_KEY"]
         
-        self.tokenizer = AutoTokenizer.from_pretrained(model, token=access_token)
+        self.tokenizer = AutoTokenizer.from_pretrained(model, token=access_token, use_fast=False)
         torch_dtype = torch.float16 if d_type == 'float16' else torch.float32
         self.engine = model
         self.model = model
@@ -44,17 +44,24 @@ class HgModels:
         self.stop = stop
         if "dellama" in model.lower():
             import sys
-            sys.path.append("/home/yc21/project/AgentBoard_yc/AgentBoard/ToolBench")
+            sys.path.append(os.environ["PROJECT_PATH"] + "/ToolBench")
             from peft import PeftModel
             from toolbench.train.llama_condense_monkey_patch import replace_llama_with_condense
             replace_llama_with_condense(ratio=2)
-            base_model = transformers.LlamaForCausalLM.from_pretrained("/home/scf22/big_model/Llama-2-7b-hf/", torch_dtype=torch.bfloat16, device_map="auto")
+            base_model = transformers.LlamaForCausalLM.from_pretrained("/data/users/zhangjunlei/download/models/Llama-2-7b-hf", torch_dtype=torch.bfloat16, device_map="auto")
             base_model.config.max_position_embeddings = 8192
-            self.llm = PeftModel.from_pretrained(base_model, "/home/yc21/project/AgentBoard_yc/AgentBoard/toolbench-unsolvable-lora", torch_dtype=torch.bfloat16)
+            self.llm = PeftModel.from_pretrained(base_model, os.environ["PROJECT_PATH"] + "/toolbench-unsolvable-lora", torch_dtype=torch.bfloat16) 
             self.tokenizer.model_max_length = 8192
             self.tokenizer.padding_side = "left"
             self.tokenizer.pad_token = self.tokenizer.unk_token
-                        
+        elif "toolllama" in model.lower():
+            import sys
+            sys.path.append(os.environ["PROJECT_PATH"] + "/ToolBench")
+            from peft import PeftModel
+            from toolbench.train.llama_condense_monkey_patch import replace_llama_with_condense
+            replace_llama_with_condense(ratio=2)
+            self.llm = transformers.LlamaForCausalLM.from_pretrained(model, torch_dtype=torch.bfloat16, device_map="auto")
+            self.llm.config.max_position_embeddings = 8192
         else:
             self.llm = AutoModelForCausalLM.from_pretrained(model, device_map='auto', torch_dtype=torch_dtype)
         #self.StopCriteria = EosListStoppingCriteria(self.tokenizer(stop))

@@ -154,14 +154,14 @@ llm:
       use_parser: False
   toolllama2-7b:
       name: hg
-      engine: /home/scf22/big_model/Llama-2-7b-hf/
+      engine: /data/users/zhangjunlei/download/models/ToolLLaMA-2-7b-v2
       max_tokens: 512
       temperature: 0.1
       top_p: 1
       stop:
       context_length: 8192
       dtype: bfloat16
-      ngpu: 2
+      ngpu: 1
       use_parser: False
   llama2-13b:
       name: vllm

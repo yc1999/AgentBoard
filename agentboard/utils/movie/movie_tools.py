@@ -341,11 +341,19 @@ class movie_toolkits:
         else:
             return False, response.text
 
+    # @log_path
+    # def finish(self, answer):
+    #     if type(answer) == list:
+    #         answer = sorted(answer)
+    #     return True, answer
     @log_path
-    def finish(self, answer):
-        if type(answer) == list:
-            answer = sorted(answer)
-        return True, answer
+    def finish(self, return_type, final_answer=None):
+        if return_type == "give_answer":
+            if type(final_answer) == list:
+                final_answer = sorted(final_answer)
+            return True, final_answer
+        else:
+            return True, "return type is give_up_and_restart"
 
     @log_path
     def unsolvableRequest(self, message):
