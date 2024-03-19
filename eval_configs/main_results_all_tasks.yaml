@@ -139,7 +139,7 @@ llm:
       stop:
       context_length: 8192
       dtype: bfloat16
-      ngpu: 2
+      ngpu: 4
       use_parser: False
   dellama2-7b:
       name: hg
@@ -154,14 +154,14 @@ llm:
       use_parser: False
   toolllama2-7b:
       name: hg
-      engine: /data/users/zhangjunlei/download/models/ToolLLaMA-2-7b-v2
+      engine: /mnt/data/yc21/download/models/ToolLLaMA-2-7b-v2
       max_tokens: 512
       temperature: 0.1
       top_p: 1
       stop:
       context_length: 8192
       dtype: bfloat16
-      ngpu: 1
+      ngpu: 4
       use_parser: False
   llama2-13b:
       name: vllm

@@ -142,7 +142,7 @@ class MovieEnv:
                 observation = self.movie_toolkits.get_movie_translation(movie_id=params["movie_id"], action_path=action_path)
             elif action_type == "finish" or action_type == "Finish":
                 # observation = self.academia_toolkits.finish(answer=params["answer"], action_path=action_path)
-                observation = self.academia_toolkits.finish(return_type=params["return_type"], final_answer=params["final_answer"] if params["return_type"] == "give_answer" else None, action_path=action_path)
+                observation = self.movie_toolkits.finish(return_type=params["return_type"], final_answer=params["final_answer"] if params["return_type"] == "give_answer" else None, action_path=action_path)
             elif action_type == "UnsolvableRequest":
                 observation = self.movie_toolkits.unsolvableRequest(message=params["message"], action_path=action_path)
             elif action_type == "check_valid_actions":
